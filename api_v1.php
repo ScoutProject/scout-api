@@ -177,6 +177,56 @@ if ($action == 'award_scheme') {
 	} else {
 		error(405); //Method not allowed
 	}
+} else if ($action == 'login') {
+	if ($method == 'GET') {
+		//Return user data if login successful
+		if (count($request) == 1) {
+			if (isset($_SERVER['PHP_AUTH_USER'])) {
+				$username = $_SERVER['PHP_AUTH_USER'];
+				$raw_password = $_SERVER['PHP_AUTH_PW'];
+
+				$result = mysqli_query($link, "SELECT id, username, password, email, realName FROM users WHERE username='$username' OR email='$username'");
+				
+				//Query for the username
+				if ($result && mysqli_num_rows($result) > 0) {
+					//Add the results to an array
+					$data = array();
+					$i = 0;
+					while ($row = mysqli_fetch_array($result)) {
+						$data[$i] = array('id' => $row['id'], 'username' => $row['username'], 'password' => $row['password'], 'email' => $row['email'], 'realName' => $row['realName']);
+						$i++;
+					}
+					
+					//If pass correct
+					if (password_verify($raw_password, $data[0]['password'])) {
+						//Password correct!
+
+						//Update currentIp
+						$result = mysqli_query($link, "UPDATE users SET currentIp='" . $_SERVER['REMOTE_ADDR'] . "', lastLoginDate=NOW() WHERE id='" . $data[0]['id'] . "'");
+
+						http_response_code(200);
+
+						die('{"id":' . $data[0]['id'] . ',"username":"' . $data[0]['username'] . '","password_hash":"' . $data[0]['password'] . '","email":"' . $data[0]['email'] . '","realName":"' . $data[0]['realName'] . '"}');
+					} else {
+						//Password incorrect
+						error(401, "Error: Username or password is incorrect.");
+					}
+				} else {
+					//Username incorrect
+					error(401, "Error: Username or password is incorrect.");
+				}
+
+				//Close the connection
+				mysqli_close($link);
+			} else {
+				error(401, "Error: A username and password is needed to log in"); //Unauthorised
+			}
+		} else {
+			error(400); //Bad request
+		}
+	} else {
+		error(405); //Method not allowed
+	}
 } else {
 	error(400, 'This action does not exist'); //Bad request
 }
