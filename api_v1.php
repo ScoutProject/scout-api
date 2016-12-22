@@ -40,22 +40,70 @@ $action = preg_replace('/[^a-z0-9_]+/i', '', $request[0]);
 //If award scheme
 if ($action == 'award_scheme') {
 	if ($method == 'GET') {
-		//Return badge md data
-		if (count($request) == 2) {
-			//Get the badgeid
-			$badgeid = preg_replace('/[^0-9]+/', '', $request[1]);
+		//Return the levels
+		if (count($request) == 3) {
+			if (preg_replace('/[^a-z]+/i', '', $request[1]) == "sublevels") {
+				//Get the sublevelid
+				$sublevelid = preg_replace('/[^0-9]+/', '', $request[2]);
 
-			//Execute the sql
-			$result = mysqli_query($link, "SELECT id, level_id, level, sublevel_id, sublevel, name, data FROM award_scheme WHERE id=$badgeid");
-			if (!$result || mysqli_num_rows($result) == 0) { error(404, mysqli_error()); } //Not found
+				//Execute the sql
+				$result = mysqli_query($link, "SELECT id, level_id, level, sublevel_id, sublevel, name, data FROM award_scheme WHERE sublevel_id=$sublevelid");
+				if (!$result || mysqli_num_rows($result) == 0) { error(404, mysqli_error()); } //Not found
 
-			header('Content-Type: application/json');
-			for ($i=0; $i < mysqli_num_rows($result); $i++) {
-				echo ($i > 0 ? ',' : '') . json_encode(mysqli_fetch_object($result));
+				header('Content-Type: application/json');
+				echo "[";
+				for ($i=0; $i < mysqli_num_rows($result); $i++) {
+					echo ($i > 0 ? ',' : '') . json_encode(mysqli_fetch_object($result));
+				}
+				echo "]";
+
+				mysqli_close($link);
+			} else {
+				error(400); //Bad request
 			}
+		} else if (count($request) == 2) {
+			if (preg_replace('/[^a-z]+/i', '', $request[1]) == "levels") {
+				//Execute the sql
+				$result = mysqli_query($link, "SELECT DISTINCT level_id, level FROM award_scheme");
+				if (!$result || mysqli_num_rows($result) == 0) { error(404, mysqli_error()); } //Not found
 
-			mysqli_close($link);
-			
+				header('Content-Type: application/json');
+				echo "[";
+				for ($i=0; $i < mysqli_num_rows($result); $i++) {
+					echo ($i > 0 ? ',' : '') . json_encode(mysqli_fetch_object($result));
+				}
+				echo "]";
+
+				mysqli_close($link);
+			//Return the sublevels
+			} else if (preg_replace('/[^a-z]+/i', '', $request[1]) == "sublevels") {
+				//Execute the sql
+				$result = mysqli_query($link, "SELECT DISTINCT sublevel_id, sublevel FROM award_scheme");
+				if (!$result || mysqli_num_rows($result) == 0) { error(404, mysqli_error()); } //Not found
+
+				header('Content-Type: application/json');
+				echo "[";
+				for ($i=0; $i < mysqli_num_rows($result); $i++) {
+					echo ($i > 0 ? ',' : '') . json_encode(mysqli_fetch_object($result));
+				}
+				echo "]";
+
+				mysqli_close($link);
+			} else {
+				//Get the badgeid
+				$badgeid = preg_replace('/[^0-9]+/', '', $request[1]);
+
+				//Execute the sql
+				$result = mysqli_query($link, "SELECT id, level_id, level, sublevel_id, sublevel, name, data FROM award_scheme WHERE id=$badgeid");
+				if (!$result || mysqli_num_rows($result) == 0) { error(404, mysqli_error()); } //Not found
+
+				header('Content-Type: application/json');
+				for ($i=0; $i < mysqli_num_rows($result); $i++) {
+					echo ($i > 0 ? ',' : '') . json_encode(mysqli_fetch_object($result));
+				}
+
+				mysqli_close($link);
+			}
 		//Return list of badges with names and ids
 		} else if (count($request) == 1) {
 			//Execute the sql
