@@ -58,6 +58,22 @@ if ($action == 'award_scheme') {
 				echo "]";
 
 				mysqli_close($link);
+			} else if (preg_replace('/[^a-z]+/i', '', $request[1]) == "levels") {
+				//Get the levelid
+				$levelid = preg_replace('/[^0-9]+/', '', $request[2]);
+
+				//Execute the sql
+				$result = mysqli_query($link, "SELECT DISTINCT sublevel_id, sublevel FROM award_scheme WHERE level_id=$levelid");
+				if (!$result || mysqli_num_rows($result) == 0) { error(404, mysqli_error()); } //Not found
+
+				header('Content-Type: application/json');
+				echo "[";
+				for ($i=0; $i < mysqli_num_rows($result); $i++) {
+					echo ($i > 0 ? ',' : '') . json_encode(mysqli_fetch_object($result));
+				}
+				echo "]";
+
+				mysqli_close($link);
 			} else {
 				error(400); //Bad request
 			}
