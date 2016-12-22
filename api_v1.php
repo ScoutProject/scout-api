@@ -15,6 +15,7 @@ function error($status, $msg = '') {
 		case 405: $text = 'Method Not Allowed'; break;
 		case 409: $text = 'Conflict'; break;
 		case 500: $text = 'Internal Server Error'; break;
+		case 501: $text = 'Not Implemented'; break;
 		default: $text = 'Unknown Error'; break;
 	}
 	
@@ -46,7 +47,7 @@ if ($action == 'award_scheme') {
 
 			//Execute the sql
 			$result = mysqli_query($link, "SELECT id, level_id, level, sublevel_id, sublevel, name, data FROM award_scheme WHERE id=$badgeid");
-			if (!$result) { error(404, mysqli_error()); } //Not found
+			if (!$result || mysqli_num_rows($result) == 0) { error(404, mysqli_error()); } //Not found
 
 			header('Content-Type: application/json');
 			for ($i=0; $i < mysqli_num_rows($result); $i++) {
@@ -59,7 +60,7 @@ if ($action == 'award_scheme') {
 		} else if (count($request) == 1) {
 			//Execute the sql
 			$result = mysqli_query($link, "SELECT id, level_id, level, sublevel_id, sublevel, name, data FROM award_scheme");
-			if (!$result) { error(404, mysqli_error()); } //Not found
+			if (!$result || mysqli_num_rows($result) == 0) { error(404, mysqli_error()); } //Not found
 
 			header('Content-Type: application/json');
 			echo "[";
@@ -69,6 +70,62 @@ if ($action == 'award_scheme') {
 			echo "]";
 
 			mysqli_close($link);
+		} else {
+			error(400); //Bad request
+		}
+	} else {
+		error(405); //Method not allowed
+	}
+//If users
+} else if ($action == 'users') {
+	//Get the user data
+	if ($method == 'GET') {
+		//Return user data
+		if (count($request) == 2) {
+			//Get the user id
+			$userid = preg_replace('/[^0-9]+/', '', $request[1]);
+
+			//Execute the sql
+			$result = mysqli_query($link, "SELECT id, username, registerDate, realName FROM users WHERE id=$userid");
+			if (!$result || mysqli_num_rows($result) == 0) { error(404, mysqli_error()); } //Not found
+
+			header('Content-Type: application/json');
+			for ($i=0; $i < mysqli_num_rows($result); $i++) {
+				echo ($i > 0 ? ',' : '') . json_encode(mysqli_fetch_object($result));
+			}
+
+			mysqli_close($link);
+			
+		//Return list of badges with names and ids
+		} else if (count($request) == 1) {
+			//Execute the sql
+			$result = mysqli_query($link, "SELECT id, username, registerDate, realName FROM users");
+			if (!$result || mysqli_num_rows($result) == 0) { error(404, mysqli_error()); } //Not found
+
+			header('Content-Type: application/json');
+			echo "[";
+			for ($i=0; $i < mysqli_num_rows($result); $i++) {
+				echo ($i > 0 ? ',' : '') . json_encode(mysqli_fetch_object($result));
+			}
+			echo "]";
+
+			mysqli_close($link);
+		} else {
+			error(400); //Bad request
+		}
+	//Make a new user
+	} else if ($method == 'POST') {
+		if (count($request) == 2) {
+			//Make sure that the second keyword is 'new'
+			if (preg_replace('/[^a-z]+/', '', $request[1]) != 'new') {
+				error(400);
+			}
+
+			//eck
+			error(501);
+
+			mysqli_close($link);
+			
 		} else {
 			error(400); //Bad request
 		}
