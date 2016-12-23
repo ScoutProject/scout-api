@@ -74,10 +74,10 @@ if ($action == 'award_scheme') {
 				$levelsql = "";
 				//Allow level fetching by name
 				if (is_numeric($levelid)) {
-					$levelsql = "SELECT DISTINCT sublevel_id, sublevel FROM award_scheme WHERE level_id=$levelid";
+					$levelsql = "SELECT DISTINCT level_id, level, sublevel_id, sublevel FROM award_scheme WHERE level_id=$levelid";
 				} else {
 					$levelid = strtoupper(strtr($levelid, "-", " "));
-					$levelsql = "SELECT DISTINCT sublevel_id, sublevel FROM award_scheme WHERE UPPER(level)='$levelid'";
+					$levelsql = "SELECT DISTINCT level_id, level, sublevel_id, sublevel FROM award_scheme WHERE UPPER(level)='$levelid'";
 				}
 
 				//Execute the sql
