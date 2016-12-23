@@ -44,10 +44,19 @@ if ($action == 'award_scheme') {
 		if (count($request) == 3) {
 			if (preg_replace('/[^a-z]+/i', '', $request[1]) == "sublevels") {
 				//Get the sublevelid
-				$sublevelid = preg_replace('/[^0-9]+/', '', $request[2]);
+				$sublevelid = preg_replace('/[^a-z0-9-]+/i', '', $request[2]);
+				
+				$sublevelsql = "";
+				//Allow sublevel fetching by name
+				if (is_numeric($sublevelid)) {
+					$sublevelsql = "SELECT id, level_id, level, sublevel_id, sublevel, name, data FROM award_scheme WHERE sublevel_id=$sublevelid";
+				} else {
+					$sublevelid = strtoupper(strtr($sublevelid, "-", " "));
+					$sublevelsql = "SELECT id, level_id, level, sublevel_id, sublevel, name, data FROM award_scheme WHERE UPPER(sublevel)='$sublevelid'";
+				}
 
 				//Execute the sql
-				$result = mysqli_query($link, "SELECT id, level_id, level, sublevel_id, sublevel, name, data FROM award_scheme WHERE sublevel_id=$sublevelid");
+				$result = mysqli_query($link, $sublevelsql);
 				if (!$result || mysqli_num_rows($result) == 0) { error(404, mysqli_error()); } //Not found
 
 				header('Content-Type: application/json');
@@ -60,10 +69,19 @@ if ($action == 'award_scheme') {
 				mysqli_close($link);
 			} else if (preg_replace('/[^a-z]+/i', '', $request[1]) == "levels") {
 				//Get the levelid
-				$levelid = preg_replace('/[^0-9]+/', '', $request[2]);
+				$levelid = preg_replace('/[^a-z0-9-]+/i', '', $request[2]);
+
+				$levelsql = "";
+				//Allow level fetching by name
+				if (is_numeric($levelid)) {
+					$levelsql = "SELECT DISTINCT sublevel_id, sublevel FROM award_scheme WHERE level_id=$levelid";
+				} else {
+					$levelid = strtoupper(strtr($levelid, "-", " "));
+					$levelsql = "SELECT DISTINCT sublevel_id, sublevel FROM award_scheme WHERE UPPER(level)='$levelid'";
+				}
 
 				//Execute the sql
-				$result = mysqli_query($link, "SELECT DISTINCT sublevel_id, sublevel FROM award_scheme WHERE level_id=$levelid");
+				$result = mysqli_query($link, $levelsql);
 				if (!$result || mysqli_num_rows($result) == 0) { error(404, mysqli_error()); } //Not found
 
 				header('Content-Type: application/json');
@@ -72,6 +90,29 @@ if ($action == 'award_scheme') {
 					echo ($i > 0 ? ',' : '') . json_encode(mysqli_fetch_object($result));
 				}
 				echo "]";
+
+				mysqli_close($link);
+			} else if (preg_replace('/[^a-z]+/i', '', $request[1]) == "badges") {
+				//Get the badgeid
+				$badgeid = preg_replace('/[^a-z0-9-]+/i', '', $request[2]);
+				
+				$badgesql = "";
+				//Allow level fetching by name
+				if (is_numeric($badgeid)) {
+					$badgesql = "SELECT id, level_id, level, sublevel_id, sublevel, name, data FROM award_scheme WHERE id=$badgeid";
+				} else {
+					$badgeid = strtoupper(strtr($badgeid, "-", " "));
+					$badgesql = "SELECT id, level_id, level, sublevel_id, sublevel, name, data FROM award_scheme WHERE UPPER(name)='$badgeid'";
+				}
+
+				//Execute the sql
+				$result = mysqli_query($link, $badgesql);
+				if (!$result || mysqli_num_rows($result) == 0) { error(404, mysqli_error()); } //Not found
+
+				header('Content-Type: application/json');
+				for ($i=0; $i < mysqli_num_rows($result); $i++) {
+					echo ($i > 0 ? ',' : '') . json_encode(mysqli_fetch_object($result));
+				}
 
 				mysqli_close($link);
 			} else {
@@ -95,6 +136,19 @@ if ($action == 'award_scheme') {
 			} else if (preg_replace('/[^a-z]+/i', '', $request[1]) == "sublevels") {
 				//Execute the sql
 				$result = mysqli_query($link, "SELECT DISTINCT sublevel_id, sublevel FROM award_scheme");
+				if (!$result || mysqli_num_rows($result) == 0) { error(404, mysqli_error()); } //Not found
+
+				header('Content-Type: application/json');
+				echo "[";
+				for ($i=0; $i < mysqli_num_rows($result); $i++) {
+					echo ($i > 0 ? ',' : '') . json_encode(mysqli_fetch_object($result));
+				}
+				echo "]";
+
+				mysqli_close($link);
+			} else if (preg_replace('/[^a-z]+/i', '', $request[1]) == "badges") {
+				//Execute the sql
+				$result = mysqli_query($link, "SELECT id, level_id, level, sublevel_id, sublevel, name, data FROM award_scheme");
 				if (!$result || mysqli_num_rows($result) == 0) { error(404, mysqli_error()); } //Not found
 
 				header('Content-Type: application/json');
