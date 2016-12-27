@@ -205,7 +205,7 @@ if ($action == 'award_scheme') {
 			$userid = preg_replace('/[^0-9]+/', '', $request[1]);
 
 			//Execute the sql
-			$result = mysqli_query($link, "SELECT id, username, registerDate, realName FROM users WHERE id=$userid");
+			$result = mysqli_query($link, "SELECT id, username, registerDate, realName, awardschemeViewed FROM users WHERE id=$userid");
 			if (!$result || mysqli_num_rows($result) == 0) { error(404, mysqli_error($link)); } //Not found
 
 			header('Content-Type: application/json');
