@@ -49,10 +49,10 @@ if ($action == 'award_scheme') {
 				$sublevelsql = "";
 				//Allow sublevel fetching by name
 				if (is_numeric($sublevelid)) {
-					$sublevelsql = "SELECT id, level_id, level, sublevel_id, sublevel, name, data FROM award_scheme WHERE sublevel_id=$sublevelid";
+					$sublevelsql = "SELECT id, level_id, level, sublevel_id, sublevel, name, image, data FROM award_scheme WHERE sublevel_id=$sublevelid";
 				} else {
 					$sublevelid = strtoupper(strtr($sublevelid, "-", " "));
-					$sublevelsql = "SELECT id, level_id, level, sublevel_id, sublevel, name, data FROM award_scheme WHERE UPPER(sublevel)='$sublevelid'";
+					$sublevelsql = "SELECT id, level_id, level, sublevel_id, sublevel, name, image, data FROM award_scheme WHERE UPPER(sublevel)='$sublevelid'";
 				}
 
 				//Execute the sql
@@ -99,10 +99,10 @@ if ($action == 'award_scheme') {
 				$badgesql = "";
 				//Allow level fetching by name
 				if (is_numeric($badgeid)) {
-					$badgesql = "SELECT id, level_id, level, sublevel_id, sublevel, name, data FROM award_scheme WHERE id=$badgeid";
+					$badgesql = "SELECT id, level_id, level, sublevel_id, sublevel, name, image, data FROM award_scheme WHERE id=$badgeid";
 				} else {
 					$badgeid = strtoupper(strtr($badgeid, "-", " "));
-					$badgesql = "SELECT id, level_id, level, sublevel_id, sublevel, name, data FROM award_scheme WHERE UPPER(name)='$badgeid'";
+					$badgesql = "SELECT id, level_id, level, sublevel_id, sublevel, name, image, data FROM award_scheme WHERE UPPER(name)='$badgeid'";
 				}
 
 				//Execute the sql
@@ -148,7 +148,7 @@ if ($action == 'award_scheme') {
 				mysqli_close($link);
 			} else if (preg_replace('/[^a-z]+/i', '', $request[1]) == "badges") {
 				//Execute the sql
-				$result = mysqli_query($link, "SELECT id, level_id, level, sublevel_id, sublevel, name, data FROM award_scheme");
+				$result = mysqli_query($link, "SELECT id, level_id, level, sublevel_id, sublevel, name, image, data FROM award_scheme");
 				if (!$result || mysqli_num_rows($result) == 0) { error(404, mysqli_error($link)); } //Not found
 
 				header('Content-Type: application/json');
@@ -164,7 +164,7 @@ if ($action == 'award_scheme') {
 				$badgeid = preg_replace('/[^0-9]+/', '', $request[1]);
 
 				//Execute the sql
-				$result = mysqli_query($link, "SELECT id, level_id, level, sublevel_id, sublevel, name, data FROM award_scheme WHERE id=$badgeid");
+				$result = mysqli_query($link, "SELECT id, level_id, level, sublevel_id, sublevel, name, image, data FROM award_scheme WHERE id=$badgeid");
 				if (!$result || mysqli_num_rows($result) == 0) { error(404, mysqli_error($link)); } //Not found
 
 				header('Content-Type: application/json');
@@ -177,7 +177,7 @@ if ($action == 'award_scheme') {
 		//Return list of badges with names and ids
 		} else if (count($request) == 1) {
 			//Execute the sql
-			$result = mysqli_query($link, "SELECT id, level_id, level, sublevel_id, sublevel, name, data FROM award_scheme");
+			$result = mysqli_query($link, "SELECT id, level_id, level, sublevel_id, sublevel, name, image, data FROM award_scheme");
 			if (!$result || mysqli_num_rows($result) == 0) { error(404, mysqli_error($link)); } //Not found
 
 			header('Content-Type: application/json');
