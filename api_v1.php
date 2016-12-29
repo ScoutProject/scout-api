@@ -87,10 +87,10 @@ if ($action == 'award_scheme') {
 				$sublevelsql = "";
 				//Allow sublevel fetching by name
 				if (is_numeric($sublevelid)) {
-					$sublevelsql = "SELECT id, level_id, level, sublevel_id, sublevel, name, image, data FROM award_scheme WHERE sublevel_id=$sublevelid";
+					$sublevelsql = "SELECT badge_id, level_id, level, sublevel_id, sublevel, name, image, data FROM award_scheme WHERE sublevel_id=$sublevelid";
 				} else {
 					$sublevelid = strtoupper(strtr($sublevelid, "-", " "));
-					$sublevelsql = "SELECT id, level_id, level, sublevel_id, sublevel, name, image, data FROM award_scheme WHERE UPPER(sublevel)='$sublevelid'";
+					$sublevelsql = "SELECT badge_id, level_id, level, sublevel_id, sublevel, name, image, data FROM award_scheme WHERE UPPER(sublevel)='$sublevelid'";
 				}
 
 				//Execute the sql
@@ -137,10 +137,10 @@ if ($action == 'award_scheme') {
 				$badgesql = "";
 				//Allow level fetching by name
 				if (is_numeric($badgeid)) {
-					$badgesql = "SELECT id, level_id, level, sublevel_id, sublevel, name, image, data FROM award_scheme WHERE id=$badgeid";
+					$badgesql = "SELECT badge_id, level_id, level, sublevel_id, sublevel, name, image, data FROM award_scheme WHERE badge_id=$badgeid";
 				} else {
 					$badgeid = strtoupper(strtr($badgeid, "-", " "));
-					$badgesql = "SELECT id, level_id, level, sublevel_id, sublevel, name, image, data FROM award_scheme WHERE UPPER(name)='$badgeid'";
+					$badgesql = "SELECT badge_id, level_id, level, sublevel_id, sublevel, name, image, data FROM award_scheme WHERE UPPER(name)='$badgeid'";
 				}
 
 				//Execute the sql
@@ -186,7 +186,7 @@ if ($action == 'award_scheme') {
 				mysqli_close($link);
 			} else if (preg_replace('/[^a-z]+/i', '', $request[1]) == "badges") {
 				//Execute the sql
-				$result = mysqli_query($link, "SELECT id, level_id, level, sublevel_id, sublevel, name, image, data FROM award_scheme");
+				$result = mysqli_query($link, "SELECT badge_id, level_id, level, sublevel_id, sublevel, name, image, data FROM award_scheme");
 				if (!$result || mysqli_num_rows($result) == 0) { error(404, mysqli_error($link)); } //Not found
 
 				header('Content-Type: application/json');
@@ -202,7 +202,7 @@ if ($action == 'award_scheme') {
 				$badgeid = preg_replace('/[^0-9]+/', '', $request[1]);
 
 				//Execute the sql
-				$result = mysqli_query($link, "SELECT id, level_id, level, sublevel_id, sublevel, name, image, data FROM award_scheme WHERE id=$badgeid");
+				$result = mysqli_query($link, "SELECT badge_id, level_id, level, sublevel_id, sublevel, name, image, data FROM award_scheme WHERE badge_id=$badgeid");
 				if (!$result || mysqli_num_rows($result) == 0) { error(404, mysqli_error($link)); } //Not found
 
 				header('Content-Type: application/json');
@@ -215,7 +215,7 @@ if ($action == 'award_scheme') {
 		//Return list of badges with names and ids
 		} else if (count($request) == 1) {
 			//Execute the sql
-			$result = mysqli_query($link, "SELECT id, level_id, level, sublevel_id, sublevel, name, image, data FROM award_scheme");
+			$result = mysqli_query($link, "SELECT badge_id, level_id, level, sublevel_id, sublevel, name, image, data FROM award_scheme");
 			if (!$result || mysqli_num_rows($result) == 0) { error(404, mysqli_error($link)); } //Not found
 
 			header('Content-Type: application/json');
@@ -244,9 +244,9 @@ if ($action == 'award_scheme') {
 
 			$usersql = '';
 			if (is_numeric($userid)) {
-				$usersql = "SELECT id, username, registerDate, realName, awardschemeViewed FROM users WHERE id=$userid";
+				$usersql = "SELECT user_id, username, registerDate, realName, awardschemeViewed FROM users WHERE user_id=$userid";
 			} else {
-				$usersql = "SELECT id, username, registerDate, realName, awardschemeViewed FROM users WHERE username=$userid";
+				$usersql = "SELECT user_id, username, registerDate, realName, awardschemeViewed FROM users WHERE username=$userid";
 			}
 			
 			//Execute the sql
@@ -263,7 +263,7 @@ if ($action == 'award_scheme') {
 		//Return list of badges with names and ids
 		} else if (count($request) == 1) {
 			//Execute the sql
-			$result = mysqli_query($link, "SELECT id, username, registerDate, realName FROM users");
+			$result = mysqli_query($link, "SELECT user_id, username, registerDate, realName FROM users");
 			if (!$result || mysqli_num_rows($result) == 0) { error(404, mysqli_error($link)); } //Not found
 
 			header('Content-Type: application/json');
@@ -393,7 +393,7 @@ if ($action == 'award_scheme') {
 								
 						$putsql = '';
 						if (is_numeric($userid)) {
-							$putsql = "UPDATE users SET password='$new_pass_hash' WHERE id=$userid";
+							$putsql = "UPDATE users SET password='$new_pass_hash' WHERE user_id=$userid";
 						} else {
 							$putsql = "UPDATE users SET password='$new_pass_hash' WHERE username='$userid'";
 						}
@@ -407,7 +407,7 @@ if ($action == 'award_scheme') {
 						
 						$putsql = '';
 						if (is_numeric($userid)) {
-							$putsql = "UPDATE users SET email='$new_email' WHERE id=$userid";
+							$putsql = "UPDATE users SET email='$new_email' WHERE user_id=$userid";
 						} else {
 							$putsql = "UPDATE users SET email='$new_email' WHERE username='$userid'";
 						}
@@ -421,7 +421,7 @@ if ($action == 'award_scheme') {
 						
 						$putsql = '';
 						if (is_numeric($userid)) {
-							$putsql = "UPDATE users SET realName='$new_name' WHERE id=$userid";
+							$putsql = "UPDATE users SET realName='$new_name' WHERE user_id=$userid";
 						} else {
 							$putsql = "UPDATE users SET realName='$new_name' WHERE username='$userid'";
 						}
@@ -436,7 +436,7 @@ if ($action == 'award_scheme') {
 						//Get the array, then add the new id, and pop off the old (if array is len 5)
 						$putsql = '';
 						if (is_numeric($userid)) {
-							$putsql = "SELECT awardschemeViewed FROM users WHERE id=$userid";
+							$putsql = "SELECT awardschemeViewed FROM users WHERE user_id=$userid";
 						} else {
 							$putsql = "SELECT awardschemeViewed FROM users WHERE username='$userid'";
 						}
@@ -469,7 +469,7 @@ if ($action == 'award_scheme') {
 						//Update with the new array
 						$putsql = '';
 						if (is_numeric($userid)) {
-							$putsql = "UPDATE users SET awardschemeViewed='$new_viewed' WHERE id=$userid";
+							$putsql = "UPDATE users SET awardschemeViewed='$new_viewed' WHERE user_id=$userid";
 						} else {
 							$putsql = "UPDATE users SET awardschemeViewed='$new_viewed' WHERE username='$userid'";
 						}
@@ -506,7 +506,7 @@ if ($action == 'award_scheme') {
 				$username = $_SERVER['PHP_AUTH_USER'];
 				$raw_password = $_SERVER['PHP_AUTH_PW'];
 
-				$result = mysqli_query($link, "SELECT id, username, password, email, realName FROM users WHERE username='$username' OR email='$username'");
+				$result = mysqli_query($link, "SELECT user_id, username, password, email, realName FROM users WHERE username='$username' OR email='$username'");
 				
 				//Query for the username
 				if ($result && mysqli_num_rows($result) > 0) {
@@ -514,7 +514,7 @@ if ($action == 'award_scheme') {
 					$data = array();
 					$i = 0;
 					while ($row = mysqli_fetch_array($result)) {
-						$data[$i] = array('id' => $row['id'], 'username' => $row['username'], 'password' => $row['password'], 'email' => $row['email'], 'realName' => $row['realName']);
+						$data[$i] = array('user_id' => $row['user_id'], 'username' => $row['username'], 'password' => $row['password'], 'email' => $row['email'], 'realName' => $row['realName']);
 						$i++;
 					}
 					
@@ -531,11 +531,11 @@ if ($action == 'award_scheme') {
 						//Password correct!
 
 						//Update currentIp
-						$result = mysqli_query($link, "UPDATE users SET currentIp='" . $_SERVER['REMOTE_ADDR'] . "', lastLoginDate=NOW() WHERE id='" . $data[0]['id'] . "'");
+						$result = mysqli_query($link, "UPDATE users SET currentIp='" . $_SERVER['REMOTE_ADDR'] . "', lastLoginDate=NOW() WHERE user_id='" . $data[0]['user_id'] . "'");
 
 						http_response_code(200);
 
-						die('{"id":' . $data[0]['id'] . ',"username":"' . $data[0]['username'] . '","password_hash":"' . $data[0]['password'] . '","email":"' . $data[0]['email'] . '","realName":"' . $data[0]['realName'] . '"}');
+						die('{"id":' . $data[0]['user_id'] . ',"username":"' . $data[0]['username'] . '","password_hash":"' . $data[0]['password'] . '","email":"' . $data[0]['email'] . '","realName":"' . $data[0]['realName'] . '"}');
 					} else {
 						//Password incorrect
 						error(401, "Error: Username or password is incorrect.");
