@@ -22,6 +22,44 @@ function error($status, $msg = '') {
 	die('{"status": ' . $status . ',"status_text":"' . $text . '","msg":"' . $msg . '"}');
 }
 
+//Self-refferential function ;P
+if (!function_exists("callAPI")) {
+	function callAPI($method, $url, $data = false, $user = false, $pass = false) {
+		$curl = curl_init();
+
+		switch ($method)
+		{
+			case "POST":
+				curl_setopt($curl, CURLOPT_POST, 1);
+
+				if ($data)
+					curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
+				break;
+			case "PUT":
+				curl_setopt($curl, CURLOPT_PUT, 1);
+				break;
+			default:
+				if ($data)
+					$url = sprintf("%s?%s", $url, http_build_query($data));
+		}
+
+		// Optional Authentication:
+		if ($user && $pass) {
+			curl_setopt($curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+			curl_setopt($curl, CURLOPT_USERPWD, "$user:$pass");
+		}
+
+		curl_setopt($curl, CURLOPT_URL, $url);
+		curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+
+		$result = curl_exec($curl);
+
+		curl_close($curl);
+
+		return $result;
+	}
+}
+
 //Get the HTTP method, path and body of the request
 $method = $_SERVER['REQUEST_METHOD'];
 $request = explode('/', trim($_SERVER['PATH_INFO'],'/'));
@@ -202,10 +240,17 @@ if ($action == 'award_scheme') {
 		if (count($request) == 2) {
 			if ($request[1] == 'new') error(405, "Use POST to add a new user");
 			//Get the user id
-			$userid = preg_replace('/[^0-9]+/', '', $request[1]);
+			$userid = preg_replace('/[^a-z0-9-_]+/', '', $request[1]);
 
+			$usersql = '';
+			if (is_numeric($userid)) {
+				$usersql = "SELECT id, username, registerDate, realName, awardschemeViewed FROM users WHERE id=$userid";
+			} else {
+				$usersql = "SELECT id, username, registerDate, realName, awardschemeViewed FROM users WHERE username=$userid";
+			}
+			
 			//Execute the sql
-			$result = mysqli_query($link, "SELECT id, username, registerDate, realName, awardschemeViewed FROM users WHERE id=$userid");
+			$result = mysqli_query($link, $usersql);
 			if (!$result || mysqli_num_rows($result) == 0) { error(404, mysqli_error($link)); } //Not found
 
 			header('Content-Type: application/json');
@@ -259,7 +304,7 @@ if ($action == 'award_scheme') {
 				} else {
 					//Vaidate password
 					if (!preg_match('/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,72}$/', $raw_password)) {
-						error(400, "Error: Password must be longer than 7 characters, and must only contain at least one lowercase letter, one uppercase letter and one number.");
+						error(400, "Error: Password must be longer than 7 characters, and must contain at least one lowercase letter, one uppercase letter and one number.");
 					} else {
 						//Validate email
 						if (filter_var(strtolower(trim($email)), FILTER_VALIDATE_EMAIL) === false) {
@@ -292,6 +337,164 @@ if ($action == 'award_scheme') {
 		} else {
 			error(400); //Bad request
 		}
+	} else if ($method == 'PUT') {
+		if (count($request) == 2) {
+			if (isset($_SERVER['PHP_AUTH_USER'])) {
+				$username = $_SERVER['PHP_AUTH_USER'];
+				$raw_password = $_SERVER['PHP_AUTH_PW'];
+				$result = callAPI('GET', 'http://api.scoutdev.ga/v1/login', false, $username, $raw_password);
+				$result = json_decode($result, true);
+				
+				//Get the user id
+				$userid = preg_replace('/[^a-z0-9-_]+/', '', $request[1]);
+				
+				if (empty($result['status']) && $result['id'] == $userid) {
+					$putdata = file_get_contents("php://input");
+					//Make sure data is not empty
+					if (empty($putdata)) {
+						error(400, 'No data'); //Bad request
+					}
+					parse_str(file_get_contents("php://input"), $PUT);
+					
+					#region Make sure anything requested can change (validation)
+					if (isset($PUT['username'])) {
+						error(501, 'You may not change your username (for now)');
+					}
+					if (isset($PUT['password'])) {
+						if (isset($PUT['password_repeat']) && $PUT['password'] == $PUT['password_repeat']) {
+							if (!preg_match('/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,72}$/', $PUT['password'])) {
+								error(400, 'Error: New password must be longer than 7 characters, and must contain at least one lowercase letter, one uppercase letter and one number.');
+							}
+						} else {
+							error(400, 'Passwords do not match');
+						}
+					}
+					if (isset($PUT['email'])) {
+						if (filter_var(strtolower(trim($PUT['email'])), FILTER_VALIDATE_EMAIL) === false) {
+							error(400, "Error: Email address is not valid.");
+						}
+					}
+					if (isset($PUT['realName'])) {
+						if (!preg_match('/[a-z-\' ]+/i', $PUT['realName'])) {
+							error(400, "Error: Name may only contain letters, spaces, hyphens and apostrophes.");
+						}
+					}
+					//Accepts a single badge id number to add to the array in the db
+					if (isset($PUT['awardschemeViewed'])) {
+						if (!preg_match('/[0-9]+/', $PUT['awardschemeViewed'])) {
+							error(400, "Error: Please only inout one badge id to add to the array.");
+						}
+					}
+					#endregion
+					
+					#region Do the actual requests
+					if (isset($PUT['password'])) {
+						$new_pass_hash = password_hash($PUT['password'], PASSWORD_DEFAULT);
+								
+						$putsql = '';
+						if (is_numeric($userid)) {
+							$putsql = "UPDATE users SET password='$new_pass_hash' WHERE id=$userid";
+						} else {
+							$putsql = "UPDATE users SET password='$new_pass_hash' WHERE username='$userid'";
+						}
+						
+						//Execute the sql
+						$sqlresult = mysqli_query($link, $putsql);
+						if (!$sqlresult || mysqli_num_rows($sqlresult) == 0) { error(404, 'The full PUT request didn\'t complete. There may be errors in the database. ' . mysqli_error($link)); } //Not found
+					}
+					if (isset($PUT['email'])) {
+						$new_email = $PUT['email'];
+						
+						$putsql = '';
+						if (is_numeric($userid)) {
+							$putsql = "UPDATE users SET email='$new_email' WHERE id=$userid";
+						} else {
+							$putsql = "UPDATE users SET email='$new_email' WHERE username='$userid'";
+						}
+						
+						//Execute the sql
+						$sqlresult = mysqli_query($link, $putsql);
+						if (!$sqlresult || mysqli_num_rows($sqlresult) == 0) { error(404, 'The full PUT request didn\'t complete. There may be errors in the database. ' . mysqli_error($link)); } //Not found
+					}
+					if (isset($PUT['realName'])) {
+						$new_name = $PUT['realName'];
+						
+						$putsql = '';
+						if (is_numeric($userid)) {
+							$putsql = "UPDATE users SET realName='$new_name' WHERE id=$userid";
+						} else {
+							$putsql = "UPDATE users SET realName='$new_name' WHERE username='$userid'";
+						}
+						
+						//Execute the sql
+						$sqlresult = mysqli_query($link, $putsql);
+						if (!$sqlresult || mysqli_num_rows($sqlresult) == 0) { error(404, 'The full PUT request didn\'t complete. There may be errors in the database. ' . mysqli_error($link)); } //Not found
+					}
+					if (isset($PUT['awardschemeViewed'])) {
+						$new_badge_id = $PUT['awardschemeViewed'];
+						
+						//Get the array, then add the new id, and pop off the old (if array is len 5)
+						$putsql = '';
+						if (is_numeric($userid)) {
+							$putsql = "SELECT awardschemeViewed FROM users WHERE id=$userid";
+						} else {
+							$putsql = "SELECT awardschemeViewed FROM users WHERE username='$userid'";
+						}
+						
+						//Execute the sql
+						$sqlresult = mysqli_query($link, $putsql);
+						if (!$sqlresult || mysqli_num_rows($sqlresult) == 0) { error(404, 'The full PUT request didn\'t complete. There may be errors in the database. ' . mysqli_error($link)); } //Not found
+						
+						$result_temp = (array)mysqli_fetch_object($sqlresult);
+						$viewed_temp = $result_temp['awardschemeViewed'];
+						$new_viewed = '';
+						if (isset($viewed_temp) && $viewed_temp != '') {
+							$new_viewed = explode(',', $viewed_temp);
+							$old_key = array_search($new_badge_id, $new_viewed);
+							if ($old_key !== false) {
+								unset($new_viewed[$old_key]);
+								$new_viewed = array_values($new_viewed);
+							} else {
+								if (count($new_viewed) == 5) {
+									$dont_need_this_anymore = array_pop($new_viewed);
+								}
+							}
+							array_unshift($new_viewed, $new_badge_id);
+							$new_viewed = implode(',', $new_viewed);
+						} else {
+							$new_viewed = $new_badge_id;
+						}
+						
+						
+						//Update with the new array
+						$putsql = '';
+						if (is_numeric($userid)) {
+							$putsql = "UPDATE users SET awardschemeViewed='$new_viewed' WHERE id=$userid";
+						} else {
+							$putsql = "UPDATE users SET awardschemeViewed='$new_viewed' WHERE username='$userid'";
+						}
+						
+						//Execute the sql
+						$sqlresult = mysqli_query($link, $putsql);
+						if (!$sqlresult) { error(404, 'The full PUT request didn\'t complete. There may be errors in the database. ' . mysqli_error($link)); } //Not found
+						
+						mysqli_close($link);
+						http_response_code(204);
+						die();
+					}
+					#endregion
+
+				} else {
+					error(401, $result['msg']); //Unauthorised
+				}
+			} else {
+				error(401, 'Username and password required'); //Unauthorised
+			}
+
+			mysqli_close($link);
+		} else {
+			error(400); //Bad request
+		}
 	} else {
 		error(405); //Method not allowed
 	}
@@ -315,8 +518,16 @@ if ($action == 'award_scheme') {
 						$i++;
 					}
 					
+					$passRight = false;
+					if (preg_match('/^\$2[ayb]\$.+$/', $raw_password)) {
+						//Given a hash
+						$passRight = hash_equals($raw_password, $data[0]['password']);
+					} else {
+						//Given a raw pass
+						$passRight = password_verify($raw_password, $data[0]['password']);
+					}
 					//If pass correct
-					if (password_verify($raw_password, $data[0]['password'])) {
+					if ($passRight) {
 						//Password correct!
 
 						//Update currentIp
